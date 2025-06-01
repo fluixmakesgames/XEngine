@@ -274,29 +274,12 @@ bool ObjectsTouchingWithTag(char *obj, char *tag) {
     flat_gameobject *object2 = NULL;
     
     for(int i = 0; i < flatobjs_count; i++) {
-        if(HasTag(GetFlatGameObject(flatobjs[i].id), tag)) object2 = GetFlatGameObject(flatobjs[i].id);
+        if(HasTag(GetFlatGameObject(flatobjs[i].id), tag)) {
+            object2 = GetFlatGameObject(flatobjs[i].id);
+            if(ObjectsTouching(obj, object2->id)) return true;
+        }
     }
-    if (!object2) return false;
-    
-    flat_gameobject *object = GetFlatGameObject(obj);
-    if (!object) return false;
-    
-
-    Rectangle area = {
-        object->Position.x,
-        object->Position.y,
-        object->Transform.x,
-        object->Transform.y
-    };
-    
-    Rectangle area2 = {
-        object2->Position.x,
-        object2->Position.y,
-        object2->Transform.x,
-        object2->Transform.y
-    };
-
-    return CheckCollisionRecs(area, area2);
+    return false;
 }
 
 char GetKeyDown() {
