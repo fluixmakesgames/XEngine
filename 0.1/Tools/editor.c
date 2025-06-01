@@ -1,4 +1,4 @@
-#include "xe.c"
+#include "../xe.c"
 
 #define MAX_OBJECTSEDITOR 20
 
