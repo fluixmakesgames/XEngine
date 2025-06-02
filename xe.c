@@ -16,6 +16,7 @@ typedef struct {
     int intdata;
     bool booldata;
     flat_gameobject *parent;
+    bool autorun;
 } props;
 
 struct flat_gameobject {
@@ -79,7 +80,7 @@ void CreateFlatObject(Vector2 Pos, Vector2 Trans, char *Spr, char *id) {
 }
 
 
-void New_Property(char *name, void *data, char *obj_name) {
+void New_Property(char *name, void *data, char *obj_name, bool runalways) {
     flat_gameobject *obj = GetFlatGameObject(obj_name);
     if (obj && obj->p_count < MAX_PROPS) {
         int idx = obj->p_count;
@@ -87,6 +88,7 @@ void New_Property(char *name, void *data, char *obj_name) {
         obj->properties[idx].name = strdup_safe(name);
         obj->properties[idx].data = data;
         obj->properties[idx].parent = obj;
+        obj->properties[idx].autorun = runalways;
 
         obj->p_count++;
     }
@@ -282,8 +284,26 @@ bool ObjectsTouchingWithTag(char *obj, char *tag) {
     return false;
 }
 
-char GetKeyDown() {
-    printf("Come back in 0.2!");
+int GetCharDown() {
+    for (int key = 0; key < 512; key++) { 
+        if (IsKeyDown(key)) {
+            return key; 
+        }
+    }
+    return 0; 
+}
+
+
+char KeyDown() {
+    int key = GetCharDown();
+
+    return (char) key;
+}
+
+char KeyPressed() {
+    int key = GetCharPressed();
+
+    return (char) key;
 }
 
 void TextOnObject(char *object, char *text, int off_x, int off_y, int size, Color color) {
@@ -297,7 +317,32 @@ void BoxOnObject(char *object, int off_x, int off_y, int width, int height, Colo
     flat_gameobject *obj = GetFlatGameObject(object);
     if (!obj) return;
 
-    DrawRectangle(obj->Position.x + off_x, obj->Position.y + off_y, width, height, color);
+    DrawRectangle(obj->Position.x + off_x, obj->Position.y + off_y, obj->Transform.x + width, obj->Transform.y + height, color);
+}
+
+void runproperties() {
+    for(int i = 0; i < flatobjs_count; i++) {
+        flat_gameobject *obj = GetFlatGameObject(flatobjs[i].id);
+        if(!obj) return;
+        
+        for(int j = 0; j < obj->p_count; j++) {
+            props *prop = &obj->properties[j];
+            if (prop->autorun && prop->data) {
+                void (*func)(props *) = (void (*)(props *))prop->data;
+                if(prop->autorun) func(prop);
+            }
+        }
+    }
+}
+
+void TopDownPlayerMovement(props *self) {
+    flat_gameobject *parent = self->parent;
+    
+    if(IsKeyDown(KEY_RIGHT)) parent->Position.x += 5;
+    if(IsKeyDown(KEY_LEFT)) parent->Position.x -= 5;
+    
+    if(IsKeyDown(KEY_DOWN)) parent->Position.y += 5;
+    if(IsKeyDown(KEY_UP)) parent->Position.y -= 5;
 }
 
 void Update();
@@ -317,18 +362,9 @@ void init(int w, int h, char *t) {
         
         DrawObjects();
         Update();
+        runproperties();
 
         EndDrawing();
-    }
-
-    // Cleanup
-    for (int i = 0; i < flatobjs_count; i++) {
-        UnloadTexture(flatobjs[i].Sprite);
-        free(flatobjs[i].id);
-        for (int j = 0; j < flatobjs[i].p_count; j++) {
-            free(flatobjs[i].properties[j].name);
-            // Free `data` if dynamically allocated
-        }
     }
 
     CloseWindow();
